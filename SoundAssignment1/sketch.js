@@ -1,3 +1,10 @@
+/*
+Name : Jacob Rodrigue
+Date : 02/24/2024
+Class : CSC 2463
+
+*/
+
 let sounds = new Tone.Players ({
   'Fortnite' : "assets/defaultdance.mp3",
   'Pipe' : "assets/pipefalling.mp3",
@@ -5,6 +12,7 @@ let sounds = new Tone.Players ({
   'Knock' : "assets/knockknock.mp3"
 });
 
+//Initialize variables for buttons and slider functions
 let button1, button2, button3, button4;
 let delAmt = new Tone.FeedbackDelay ("8n",0.5);
 let distAmt = new Tone.Distortion (0.5);
@@ -19,6 +27,7 @@ distAmt.toDestination();
 function setup() {
   createCanvas(400, 400);
 
+  //Create buttons for user to play sounds
   button1 = createButton('Pipe Falling');
   button1.position(85,150);
   button1.mousePressed(() =>sounds.player("Pipe").start());
@@ -53,6 +62,7 @@ function setup() {
 
 }
 
+//Draw background and add text to describe what each slider does
 function draw() {
   background(50,200,200);
   text ("Add delay with slider", 130, 300);
