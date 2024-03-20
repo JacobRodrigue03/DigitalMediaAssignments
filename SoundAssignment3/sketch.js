@@ -1,8 +1,9 @@
 /*
 Jacob Rodrigue
-
+03/19/2024
+CSC2463
 */
-// Load balloon image
+// Load bubblewrap image
 let BubblewrapImage;
 
 // Sound variables
@@ -11,7 +12,7 @@ let lfo;
 let lfoFreq = 100; // LFO frequency
 
 function preload() {
-  // Load the balloon image
+  // Load the bubblewrap image
   BubblewrapImage = loadImage('Assets/Bubblewrap.jpg');
 }
 
@@ -42,11 +43,11 @@ function setup() {
 }
 
 function draw() {
-  // Draw any additional elements if needed
+  
 }
 
 function mousePressed() {
-  // Display balloon image
+  // Display image
   image(BubblewrapImage, 0, 0, width, height);
   
   // Trigger the sound effect
