@@ -9,16 +9,20 @@ let backgroundImg;
 let streets = [];
 let scooters = [];
 let lastSpawnTime = 0;
-let spawnInterval = 500;
+let spawnInterval = 400;
 let scooterSpriteSheet;
+let restartButton;
 let score = 0;
 let lives = 3;
 let gameOver = false;
 let win = false;
-let sounds = new Tone.Players ({  //initialize sounds
-  'Crash' : 'assets/crashSound.mp3',
-  'BackgroundMusic' : 'assets/Music.wav',
-  'Over' : 'assets/GameOver.mp3'
+let playerSynth; // Synth for player movement sound
+let collisionSynth; // Synth for collision sound
+let sounds = new Tone.Players({ //initialize sounds
+  'Crash': 'assets/crashSound.mp3',
+  'BackgroundMusic': 'assets/Music.wav',
+  'Over': 'assets/GameOver.mp3',
+  'Yay' : 'assets/yayEffect.mp3'
 })
 sounds.toDestination();
 
@@ -42,10 +46,8 @@ function preload() {
   }
 }
 
-class Scooter
-{
-  constructor(y, spriteSheet)
-  {
+class Scooter {
+  constructor(y, spriteSheet) {
     this.x = width;
     this.y = y;
     this.speed = random(2, 5);
@@ -62,26 +64,64 @@ class Scooter
   }
 
   display() {
-     // Animate sprite from sprite sheet
-     let frameX = this.frameIndex * this.frameWidth;
-     image(this.spriteSheet, this.x, this.y, this.frameWidth, this.spriteSheet.height, frameX, 0, this.frameWidth, this.spriteSheet.height);
-     // Increment frame index for next frame
-     this.frameIndex = (this.frameIndex + 1) % 4; // Assuming 4 frames in the sprite sheet
-   }
- }
+    // Animate sprite from sprite sheet
+    let frameX = this.frameIndex * this.frameWidth;
+    image(this.spriteSheet, this.x, this.y, this.frameWidth, this.spriteSheet.height, frameX, 0, this.frameWidth, this.spriteSheet.height);
+    // Increment frame index for next frame
+    this.frameIndex = (this.frameIndex + 1) % 4; // Assuming 4 frames in the sprite sheet
+  }
+}
 
 
 function setup() {
   createCanvas(800, 600);
-  const player = new Tone.Player("assets/Music.wav").toDestination(); //Music created by learning synths website
-  player.autostart = true;
+  Tone.start();
+  const backgroundMusic = new Tone.Player({
+    url: 'assets/Music.wav',
+    loop: true // Loop the background music
+  }).toDestination();
+  backgroundMusic.autostart = true;
 
+  playerSynth = new Tone.Synth({
+    oscillator: {
+      type: 'triangle' // You can experiment with different oscillator types
+    },
+    envelope: {
+      attack: 0.1,
+      decay: 0.1,
+      sustain: 0.5,
+      release: 0.1
+    }
+  }).toDestination();
 
-  
-  streets.push({yStart: 480, yEnd: 465});
-  streets.push({yStart: 360, yEnd: 310});
-  streets.push({yStart: 200, yEnd: 160});
-  streets.push({yStart: 60, yEnd: 0});
+  collisionSynth = new Tone.Synth({
+    oscillator: {
+      type: 'square' // You can experiment with different oscillator types
+    },
+    envelope: {
+      attack: 0.05,
+      decay: 0.1,
+      sustain: 0.3,
+      release: 0.5
+    }
+  }).toDestination();
+
+  streets.push({
+    yStart: 480,
+    yEnd: 465
+  });
+  streets.push({
+    yStart: 360,
+    yEnd: 310
+  });
+  streets.push({
+    yStart: 200,
+    yEnd: 160
+  });
+  streets.push({
+    yStart: 60,
+    yEnd: 0
+  });
   playerX = width / 2;
   playerY = height - 50;
 
@@ -92,19 +132,23 @@ function setup() {
     let scooter = new Scooter(y, scooterSpriteSheet);
     scooters.push(scooter);
   }
+
+  restartButton = createButton('Restart');
+  restartButton.position(10, 10); // Set the position of the button
+  restartButton.mousePressed(restartGame); // Call restartGame() when button is clicked
 }
 
 function draw() {
   background(backgroundImg);
   handleInput();
 
-  if(!gameOver && !win) {
-  movePlayer();
-  drawPlayer();
-  displayScooters();
-  drawScore();
-  drawLives();
-  checkGameStatus();
+  if (!gameOver && !win) {
+    movePlayer();
+    drawPlayer();
+    displayScooters();
+    drawScore();
+    drawLives();
+    checkGameStatus();
   } else {
     if (win) {
       drawWinScreen();
@@ -123,7 +167,7 @@ let keyProcessed = {
   'left': false,
   'right': false,
   'up': false,
-  'down':false
+  'down': false
 };
 
 function handleInput() {
@@ -159,10 +203,6 @@ function handleInput() {
 function movePlayer() {
   if (currentDirection) {
     // Update lastMovedDirection when the player moves
-
-    if (currentDirection === 'up') {
-      score++;
-    }
     lastMovedDirection = currentDirection;
 
     // Move the player based on the current direction
@@ -184,6 +224,32 @@ function movePlayer() {
     // Constrain player within canvas boundaries
     playerX = constrain(playerX, 0, width - playerSize);
     playerY = constrain(playerY, 0, height - playerSize);
+
+    // Check for collision after moving the player
+    checkCollisionAndPlaySound();
+  }
+}
+
+function checkCollisionAndPlaySound() {
+  for (let i = 0; i < scooters.length; i++) {
+    if (collisionDetected(playerX, playerY, playerSize, playerSize, scooters[i].x, scooters[i].y, scooters[i].frameWidth, scooterSpriteSheet.height)) {
+      // Reduce lives count and reset player position
+      lives--;
+      collisionSynth.triggerAttackRelease('G4', '8n');
+      playerX = width / 2;
+      playerY = height - 50;
+      return; // Exit function to prevent triggering movement sound
+    }
+  }
+
+  triggerMovementSound();
+}
+
+
+function triggerMovementSound() {
+  if (currentDirection === 'up') {
+    score++;
+    playerSynth.triggerAttackRelease('C4', '8n');
   }
 }
 
@@ -193,20 +259,20 @@ function drawPlayer() {
   let playerImage;
 
   if (currentDirection) {
-  switch (currentDirection) {
-    case 'left':
-      playerImage = playerSprites[2];
-      break;
-    case 'right':
-      playerImage = playerSprites[3];
-      break;
-    case 'up':
-      playerImage = playerSprites[1];
-      break;
-    case 'down':
-      playerImage = playerSprites[0];
-      break;
-   }
+    switch (currentDirection) {
+      case 'left':
+        playerImage = playerSprites[2];
+        break;
+      case 'right':
+        playerImage = playerSprites[3];
+        break;
+      case 'up':
+        playerImage = playerSprites[1];
+        break;
+      case 'down':
+        playerImage = playerSprites[0];
+        break;
+    }
   } else {
     switch (lastMovedDirection) {
       case 'left':
@@ -221,7 +287,7 @@ function drawPlayer() {
       case 'down':
         playerImage = playerSprites[0];
         break;
-  }
+    }
   }
   image(playerImage, playerX, playerY, playerSize, playerSize);
 }
@@ -234,8 +300,10 @@ function displayScooters() {
     if (collisionDetected(playerX, playerY, playerSize, playerSize, scooters[i].x, scooters[i].y, scooters[i].frameWidth, scooterSpriteSheet.height)) {
       // Reduce lives count and reset player position
       lives--;
+      collisionSynth.triggerAttackRelease('G4', '8n');
       playerX = width / 2;
       playerY = height - 50;
+
     }
 
     if (playerY <= 0) {
@@ -261,7 +329,7 @@ function spawnScooter() {
     let randomStreet = random(streets);
     let newScooter = new Scooter(random(randomStreet.yStart, randomStreet.yEnd), scooterSpriteSheet);
     scooters.push(newScooter);
-    
+
     // Update last spawn time
     lastSpawnTime = currentTime;
   }
@@ -282,12 +350,14 @@ function drawLives() {
 }
 
 function checkGameStatus() {
-  if (score >= 20) {
+  if (score >= 30) {
     win = true;
     gameOver = true;
+    sounds.player('Yay').start();
   }
   if (lives <= 0) {
     gameOver = true;
+    sounds.player('Over').start();
   }
 }
 
@@ -307,5 +377,36 @@ function drawGameOverScreen() {
   text("Game Over!", width / 2, height / 2);
 }
 
+function restartGame() {
+  // Reset game state
+  score = 0;
+  lives = 3;
+  gameOver = false;
+  win = false;
+  // Clear the canvas or reset any game elements if needed
 
+  // Reset Tone.js
+  resetToneJS();
+}
 
+function resetToneJS() {
+  // Stop all active audio
+  Tone.Transport.stop();
+  Tone.Transport.cancel();
+
+  // Release resources
+  playerSynth.dispose();
+  collisionSynth.dispose();
+
+  // Clear scheduled events
+  Tone.Transport.cancel();
+
+  // Reset global state
+  Tone.Transport.bpm.value = 120; // Reset tempo to default
+  // Other global state reset if applicable
+
+  // Reinitialize necessary Tone.js components
+  playerSynth = new Tone.Synth({ /* Reinitialize synth parameters */ }).toDestination();
+  collisionSynth = new Tone.Synth({ /* Reinitialize synth parameters */ }).toDestination();
+
+}
