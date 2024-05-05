@@ -11,6 +11,10 @@ let scooters = [];
 let lastSpawnTime = 0;
 let spawnInterval = 500;
 let scooterSpriteSheet;
+let score = 0;
+let lives = 3;
+let gameOver = false;
+let win = false;
 
 function preload() {
   backgroundImg = loadImage('assets/bgImg.png');
@@ -31,8 +35,6 @@ function preload() {
     });
   }
 }
-
-
 
 class Scooter
 {
@@ -85,10 +87,21 @@ function setup() {
 function draw() {
   background(backgroundImg);
   handleInput();
+
+  if(!gameOver && !win) {
   movePlayer();
   drawPlayer();
   displayScooters();
-  
+  drawScore();
+  drawLives();
+  checkGameStatus();
+  } else {
+    if (win) {
+      drawWinScreen();
+    } else {
+      drawGameOverScreen();
+    }
+  }
 
   for (let i = 0; i < scooters.length; i++) {
     scooters[i].move();
@@ -136,6 +149,10 @@ function handleInput() {
 function movePlayer() {
   if (currentDirection) {
     // Update lastMovedDirection when the player moves
+
+    if (currentDirection === 'up' || currentDirection === 'down') {
+      score++;
+    }
     lastMovedDirection = currentDirection;
 
     // Move the player based on the current direction
@@ -199,18 +216,26 @@ function drawPlayer() {
   image(playerImage, playerX, playerY, playerSize, playerSize);
 }
 
-
-
-
 function displayScooters() {
   for (let i = scooters.length - 1; i >= 0; i--) {
     scooters[i].move();
     scooters[i].display();
+    // Check for collision
+    if (collisionDetected(playerX, playerY, playerSize, playerSize, scooters[i].x, scooters[i].y, scooters[i].frameWidth, scooterSpriteSheet.height)) {
+      // Reduce lives count and reset player position
+      lives--;
+      playerX = width / 2;
+      playerY = height - 50;
+    }
     // Remove scooters that are out of bounds
     if (scooters[i].x < -scooters[i].frameWidth) {
       scooters.splice(i, 1);
     }
   }
+}
+
+function collisionDetected(x1, y1, w1, h1, x2, y2, w2, h2) {
+  return x1 + w1 >= x2 && x1 <= x2 + w2 && y1 + h1 >= y2 && y1 <= y2 + h2;
 }
 
 function spawnScooter() {
@@ -226,5 +251,46 @@ function spawnScooter() {
     lastSpawnTime = currentTime;
   }
 }
+
+function drawScore() {
+  textSize(24);
+  fill(255);
+  textAlign(RIGHT, TOP);
+  text("Score: " + score, width - 10, 10);
+}
+
+function drawLives() {
+  textSize(24);
+  fill(255);
+  textAlign(RIGHT, TOP);
+  text("Lives: " + lives, width - 10, 40);
+}
+
+function checkGameStatus() {
+  if (score >= 20) {
+    win = true;
+    gameOver = true;
+  }
+  if (lives <= 0) {
+    gameOver = true;
+  }
+}
+
+function drawWinScreen() {
+  // Display "You Win!" screen
+  textSize(48);
+  fill(255);
+  textAlign(CENTER, CENTER);
+  text("You Win!", width / 2, height / 2);
+}
+
+function drawGameOverScreen() {
+  // Display "Game Over!" screen
+  textSize(48);
+  fill(255);
+  textAlign(CENTER, CENTER);
+  text("Game Over!", width / 2, height / 2);
+}
+
 
 
