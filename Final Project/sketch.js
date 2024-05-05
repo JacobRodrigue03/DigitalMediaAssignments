@@ -15,6 +15,12 @@ let score = 0;
 let lives = 3;
 let gameOver = false;
 let win = false;
+let sounds = new Tone.Players ({  //initialize sounds
+  'Crash' : 'assets/crashSound.mp3',
+  'BackgroundMusic' : 'assets/Music.wav',
+  'Over' : 'assets/GameOver.mp3'
+})
+sounds.toDestination();
 
 function preload() {
   backgroundImg = loadImage('assets/bgImg.png');
@@ -67,7 +73,11 @@ class Scooter
 
 function setup() {
   createCanvas(800, 600);
+  const player = new Tone.Player("assets/Music.wav").toDestination(); //Music created by learning synths website
+  player.autostart = true;
 
+
+  
   streets.push({yStart: 480, yEnd: 465});
   streets.push({yStart: 360, yEnd: 310});
   streets.push({yStart: 200, yEnd: 160});
@@ -150,7 +160,7 @@ function movePlayer() {
   if (currentDirection) {
     // Update lastMovedDirection when the player moves
 
-    if (currentDirection === 'up' || currentDirection === 'down') {
+    if (currentDirection === 'up') {
       score++;
     }
     lastMovedDirection = currentDirection;
@@ -224,6 +234,11 @@ function displayScooters() {
     if (collisionDetected(playerX, playerY, playerSize, playerSize, scooters[i].x, scooters[i].y, scooters[i].frameWidth, scooterSpriteSheet.height)) {
       // Reduce lives count and reset player position
       lives--;
+      playerX = width / 2;
+      playerY = height - 50;
+    }
+
+    if (playerY <= 0) {
       playerX = width / 2;
       playerY = height - 50;
     }
