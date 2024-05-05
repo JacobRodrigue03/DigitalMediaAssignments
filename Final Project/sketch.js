@@ -1,174 +1,163 @@
 let player;
+let playerSize = 40;
+let playerSpeed = 3;
+let playerSprites = [];
+let currentDirection = 'down';
+let playerX, playerY; // Position variables
+let backgroundImg;
+let streets = [];
 let scooters = [];
-let score = 0;
-let lives = 3;
-let playerLeft;
-let playerRight;
-let playerForward;
-let scooterimg;
-let moveSound;
-let crashSound;
-let bgMusic;
-let bgImg;
-let spawnInterval = 60; //Spawn a scooter every 60 seconds
-let spawnTimer = 0;
-let scooterSpeed = 3; //Adjust to change speed of scooters
-let gameOver = false;
-let streetArea = 
-{
-  x: 100,
-  y: 300,
-  width: 600,
-  height: 200
-};
+let lastSpawnTime = 0;
+let spawnInterval = 2000;
+let scooterSpriteSheet;
 
-function preload()
-{
-  playerLeft = loadImage('');
-  playerRight = loadImage('');
-  playerForward = loadImage('');
-  bgImg = loadImage('');
-  scooterimg = loadSpriteSheet('', 64, 64, 4);
-  moveSound = ('');
-  crashSound = ('');
-  bgMusic = ('');
+function preload() {
+  backgroundImg = loadImage('assets/bgImg.png');
+  scooterSpriteSheet = loadImage('assets/scooterSprite.png')
+  for (let i = 0; i < 4; i++) {
+    playerSprites[i] = loadImage('assets/player_' + i + '.png');
+  }
 }
 
-function setup() 
+
+class Scooter
 {
-  createCanvas(800,600);
-  player = new player(width)
-
-  //Open Serial Port
-  serial = new p5.serialPort();
-  serial.open('');
-  serial.on('data', serialEvent);
-}
-
-function draw()
-{
-  if (!gameOver)
-    {
-      image(bgImg, 0, 0);
-
-      updateScooters();
-      displayScooters();
-
-      spawnScooters();
-
-      textSize(24);
-      fill(255);
-      text('Lives: ' + lives, 20, 40);
-
-      if (joystickX > 600)
-        {
-          score++;
-          moveSound.play();
-        }
-
-        text('Score: ' + score, width - 150, 40);
-    } else
-    {
-      textSize(64);
-      fill(255, 0, 0);
-      textAlign(CENTER, CENTER);
-      text('Game Over', width / 2, height / 2);
-    } 
-}
-
-function serialEvent()
-{
-  let message = serial.readLine();
-  if (message.length > 0)
-    {
-      let data = message.split(',');
-      if (data.length === 2)
-        {
-          joystickX = parseInt(data[0]);
-          joystickY = parseInt(data[1]);
-        }
-    }
-}
-
-function updateScooters()
-{
-  for (let i = scooters.length - 1; i >= 0; i--)
-    {
-      scooters[i].update();
-
-      if(scooters[i].x > width)
-        {
-          scooters.splice(i, 1);
-        }
-    }
-
-    
-    if (lives <= 0)
-      {
-        gameOver = true;
-        bgMusic.stop();
-      }
-}
-
-function displayScooters()
-{
-  for (let scooter of scooters)
-    {
-      scooter.display();
-
-
-      if (collideRectRect(scooter.x - scooter.width / 2, scooter.y - scooter.height / 2, scooter.width, scooter.height,
-        mouseX - playerForward.width / 2, mouseY - playerForward.height / 2, playerForward.width, playerForward.height
-       )) {
-        crashSound.play();
-
-        lives--;
-       }
-    }
-}
-
-function spawnScooters() 
-{
-  spawnTimer++;
-  if (spawnTimer >= spawnInterval)
-    {
-      let yPos = random(streetArea.y, streetArea.y + streetArea.height);
-      let xPos = random(streetArea.x, streetArea.x + streetArea.width);
-      let newScooter = new Scooter(xPos, yPos, scooterimg, scooterSpeed);
-      scooters.push(newScooter);
-      spawnTimer = 0; //Resets the spawn timer
-    }
-}
-
-class Scooter 
-{
-  constructor(x, y, sprite, speed)
+  constructor(y, spriteSheet)
   {
-    this.x = x;
+    this.x = width;
     this.y = y;
-    this.sprite = sprite;
-    this.speed = speed;
-    this.frame = 0;
-    this.width = 64;
-    this.height = 64;
+    this.speed = random(2, 5);
+    this.frameIndex = 0;
+    this.frameCount = 4;
+    this.frameWidth = spriteSheet.width / this.frameCount;
+    this.spriteSheet = spriteSheet;
   }
 
-  display() 
-  {
-    image(this.sprite[this.frame], this.x - this.width / 2, this.y - this.height / 2, this.width, this.height);
-
+  move() {
+    this.x -= this.speed; // Move towards the left
+    // Increment frame index to animate the sprite
+    this.frameIndex = (this.frameIndex + 1) % this.frameCount;
   }
 
-  update()
-  {
-    this.x += this.speed;
+  display() {
+     // Animate sprite from sprite sheet
+     let frameX = this.frameIndex * this.frameWidth;
+     image(this.spriteSheet, this.x, this.y, this.frameWidth, this.spriteSheet.height, frameX, 0, this.frameWidth, this.spriteSheet.height);
+     // Increment frame index for next frame
+     this.frameIndex = (this.frameIndex + 1) % 4; // Assuming 4 frames in the sprite sheet
+   }
+ }
 
-    this.frame = (this.frame + 1) % this.sprite.length;
 
-    if (this.x > width + 50)
-      {
-        this.x = -100;
-        this.y = random(streetArea.y, streetArea.y + streetArea.height);
-      }
+function setup() {
+  createCanvas(800, 600);
+
+  streets.push({yStart: 525, yEnd: 450});
+  streets.push({yStart: 375, yEnd: 300});
+  streets.push({yStart: 225, yEnd: 150});
+  streets.push({yStart: 75, yEnd: 0});
+  playerX = width / 2;
+  playerY = height - 50;
+
+  setInterval(spawnScooter, spawnInterval);
+
+  for (let i = 0; i < streets.length; i++) {
+    let y = (streets[i].yStart + streets[i].yEnd) / 2;
+    let scooter = new Scooter(y, scooterSpriteSheet);
+    scooters.push(scooter);
   }
 }
+
+function draw() {
+  background(backgroundImg);
+  handleInput();
+  movePlayer();
+  drawPlayer();
+  displayScooters();
+  
+
+  for (let i = 0; i < scooters.length; i++) {
+    scooters[i].move();
+    scooters[i].display();
+  }
+}
+
+function handleInput() {
+  if (keyIsDown(LEFT_ARROW)) {
+    currentDirection = 'left';
+  } else if (keyIsDown(RIGHT_ARROW)) {
+    currentDirection = 'right';
+  } else if (keyIsDown(UP_ARROW)) {
+    currentDirection = 'up';
+  } else if (keyIsDown(DOWN_ARROW)) {
+    currentDirection = 'down';
+  }
+}
+
+function movePlayer() {
+  switch (currentDirection) {
+    case 'left':
+      playerX -= playerSpeed;
+      break;
+    case 'right':
+      playerX += playerSpeed;
+      break;
+    case 'up':
+      playerY -= playerSpeed;
+      break;
+    case 'down':
+      playerY += playerSpeed;
+      break;
+  }
+
+  // Constrain player within canvas boundaries
+  playerX = constrain(playerX, 0, width - playerSize);
+  playerY = constrain(playerY, 0, height - playerSize);
+}
+
+function drawPlayer() {
+  // Draw player sprite based on current direction
+  let playerImage;
+  switch (currentDirection) {
+    case 'left':
+      playerImage = playerSprites[2];
+      break;
+    case 'right':
+      playerImage = playerSprites[3];
+      break;
+    case 'up':
+      playerImage = playerSprites[1];
+      break;
+    case 'down':
+      playerImage = playerSprites[0];
+      break;
+  }
+  image(playerImage, playerX, playerY, playerSize, playerSize);
+}
+
+function displayScooters() {
+  for (let i = scooters.length - 1; i >= 0; i--) {
+    scooters[i].move();
+    scooters[i].display();
+    // Remove scooters that are out of bounds
+    if (scooters[i].x < -scooters[i].frameWidth) {
+      scooters.splice(i, 1);
+    }
+  }
+}
+
+function spawnScooter() {
+  // Check if enough time has passed since the last spawn
+  let currentTime = millis();
+  if (currentTime - lastSpawnTime > spawnInterval) {
+    // Add a new scooter to the right side of the screen
+    let randomStreet = random(streets);
+    let newScooter = new Scooter(random(randomStreet.yStart, randomStreet.yEnd), scooterSpriteSheet);
+    scooters.push(newScooter);
+    
+    // Update last spawn time
+    lastSpawnTime = currentTime;
+  }
+}
+
+
