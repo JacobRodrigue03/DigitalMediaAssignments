@@ -1,23 +1,37 @@
 let player;
 let playerSize = 40;
-let playerSpeed = 3;
+let playerSpeed = 50;
 let playerSprites = [];
 let currentDirection = 'down';
+let lastMovedDirection = 'down';
 let playerX, playerY; // Position variables
 let backgroundImg;
 let streets = [];
 let scooters = [];
 let lastSpawnTime = 0;
-let spawnInterval = 2000;
+let spawnInterval = 500;
 let scooterSpriteSheet;
 
 function preload() {
   backgroundImg = loadImage('assets/bgImg.png');
-  scooterSpriteSheet = loadImage('assets/scooterSprite.png')
+  scooterSpriteSheet = loadImage('assets/scooterSprite.png');
+
+  let loadedCount = 0; // Counter to track the number of loaded images
+
+  // Use a callback function to track image loading completion
   for (let i = 0; i < 4; i++) {
-    playerSprites[i] = loadImage('assets/player_' + i + '.png');
+    playerSprites[i] = loadImage('assets/player_' + i + '.png', () => {
+      loadedCount++;
+
+      // Check if all images are loaded
+      if (loadedCount === 4) {
+        // Call setup() when all images are loaded
+        setup();
+      }
+    });
   }
 }
+
 
 
 class Scooter
@@ -52,10 +66,10 @@ class Scooter
 function setup() {
   createCanvas(800, 600);
 
-  streets.push({yStart: 525, yEnd: 450});
-  streets.push({yStart: 375, yEnd: 300});
-  streets.push({yStart: 225, yEnd: 150});
-  streets.push({yStart: 75, yEnd: 0});
+  streets.push({yStart: 480, yEnd: 465});
+  streets.push({yStart: 360, yEnd: 310});
+  streets.push({yStart: 200, yEnd: 160});
+  streets.push({yStart: 60, yEnd: 0});
   playerX = width / 2;
   playerY = height - 50;
 
@@ -82,42 +96,76 @@ function draw() {
   }
 }
 
+let keyProcessed = {
+  'left': false,
+  'right': false,
+  'up': false,
+  'down':false
+};
+
 function handleInput() {
-  if (keyIsDown(LEFT_ARROW)) {
-    currentDirection = 'left';
-  } else if (keyIsDown(RIGHT_ARROW)) {
-    currentDirection = 'right';
-  } else if (keyIsDown(UP_ARROW)) {
-    currentDirection = 'up';
-  } else if (keyIsDown(DOWN_ARROW)) {
-    currentDirection = 'down';
+  // Reset currentDirection
+  currentDirection = null;
+
+  if (keyIsPressed) {
+    if (keyIsDown(LEFT_ARROW) && !keyProcessed['left']) {
+      currentDirection = 'left';
+      keyProcessed['left'] = true;
+    } else if (keyIsDown(RIGHT_ARROW) && !keyProcessed['right']) {
+      currentDirection = 'right';
+      keyProcessed['right'] = true;
+    } else if (keyIsDown(UP_ARROW) && !keyProcessed['up']) {
+      currentDirection = 'up';
+      keyProcessed['up'] = true;
+    } else if (keyIsDown(DOWN_ARROW) && !keyProcessed['down']) {
+      currentDirection = 'down';
+      keyProcessed['down'] = true;
+    }
+  } else {
+    // Reset keyProcessed when no key is pressed
+    keyProcessed = {
+      'left': false,
+      'right': false,
+      'up': false,
+      'down': false
+    };
   }
 }
+
 
 function movePlayer() {
-  switch (currentDirection) {
-    case 'left':
-      playerX -= playerSpeed;
-      break;
-    case 'right':
-      playerX += playerSpeed;
-      break;
-    case 'up':
-      playerY -= playerSpeed;
-      break;
-    case 'down':
-      playerY += playerSpeed;
-      break;
-  }
+  if (currentDirection) {
+    // Update lastMovedDirection when the player moves
+    lastMovedDirection = currentDirection;
 
-  // Constrain player within canvas boundaries
-  playerX = constrain(playerX, 0, width - playerSize);
-  playerY = constrain(playerY, 0, height - playerSize);
+    // Move the player based on the current direction
+    switch (currentDirection) {
+      case 'left':
+        playerX -= playerSpeed;
+        break;
+      case 'right':
+        playerX += playerSpeed;
+        break;
+      case 'up':
+        playerY -= playerSpeed;
+        break;
+      case 'down':
+        playerY += playerSpeed;
+        break;
+    }
+
+    // Constrain player within canvas boundaries
+    playerX = constrain(playerX, 0, width - playerSize);
+    playerY = constrain(playerY, 0, height - playerSize);
+  }
 }
 
+
 function drawPlayer() {
-  // Draw player sprite based on current direction
+  // Draw player sprite at the player's current position
   let playerImage;
+
+  if (currentDirection) {
   switch (currentDirection) {
     case 'left':
       playerImage = playerSprites[2];
@@ -131,9 +179,28 @@ function drawPlayer() {
     case 'down':
       playerImage = playerSprites[0];
       break;
+   }
+  } else {
+    switch (lastMovedDirection) {
+      case 'left':
+        playerImage = playerSprites[2];
+        break;
+      case 'right':
+        playerImage = playerSprites[3];
+        break;
+      case 'up':
+        playerImage = playerSprites[1];
+        break;
+      case 'down':
+        playerImage = playerSprites[0];
+        break;
+  }
   }
   image(playerImage, playerX, playerY, playerSize, playerSize);
 }
+
+
+
 
 function displayScooters() {
   for (let i = scooters.length - 1; i >= 0; i--) {
