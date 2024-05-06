@@ -34,27 +34,27 @@ void setup() {
 }
 
 void loop() {
-  // put your main code here, to run repeatedly:
+  
   int x = analogRead(VRX_PIN);
   int y = analogRead(VRY_PIN);
   int sw = digitalRead(SW_PIN);
 
   xTotal = xTotal - xReadings[readIndex];
   yTotal = yTotal - yReadings[readIndex];
-  // read from the sensor:
+  //read from the sensor:
   xReadings[readIndex] = x;
   yReadings[readIndex] = y;
-  // add the reading to the total:
+  //add the reading to the total:
   xTotal = xTotal + x;
   yTotal = yTotal + y;
-  // advance to the next position in the array:
+  
   readIndex = readIndex + 1;
 
-  // calculate the average:
+  //calculate the average:
   xAverage = xTotal / numReadings;
   yAverage = yTotal / numReadings;
 
-  // if we're at the end of the array...
+  //if we're at the end of the array...
   if (readIndex >= numReadings) {
     // ...wrap around to the beginning:
     readIndex = 0;
@@ -77,27 +77,27 @@ void loop() {
     
       lastTime = now;
     }
+  //logic for LED lights 
+      if (Serial.available() > 0) {
+      int lifeCount = Serial.parseInt();
 
-    if (Serial.available() > 0) {
-    int lifeCount = Serial.parseInt();
-
-    if (lifeCount >= 1) {
+      if (lifeCount >= 1) {
         digitalWrite(LED1_PIN, HIGH);
-    }else {
-      digitalWrite(LED1_PIN, LOW);
-    }
-    if (lifeCount >= 2) {
-      digitalWrite(LED2_PIN, HIGH);
-    } else {
-      digitalWrite(LED2_PIN, LOW);
-    }
-    if (lifeCount >= 3) {
-      digitalWrite(LED3_PIN, HIGH);
-    } else {
-      digitalWrite(LED3_PIN, LOW);
-    }
+        }else {
+        digitalWrite(LED1_PIN, LOW);
+        }
+        if (lifeCount >= 2) {
+        digitalWrite(LED2_PIN, HIGH);
+        } else {
+        digitalWrite(LED2_PIN, LOW);
+        }
+        if (lifeCount >= 3) {
+        digitalWrite(LED3_PIN, HIGH);
+        } else {
+        digitalWrite(LED3_PIN, LOW);
+        }
 
-    delay(20);
+      delay(20);
+    }
   }
-}
 }

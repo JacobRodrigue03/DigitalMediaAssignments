@@ -3,7 +3,7 @@ let port;
 let joystickX = 0, joystickY = 0, sw = 0;
 let prevJoystickDirection = null;
 let joystickTimer = 0;
- let joystickDelay = 300;
+let joystickDelay = 300;
 let connectButton;
 let playerSize = 40;
 let playerSpeed = 50;
@@ -62,7 +62,7 @@ class Scooter {
     this.frameWidth = spriteSheet.width / this.frameCount;
     this.spriteSheet = spriteSheet;
   }
-
+  //Get scooters to drive left across the screen
   move() {
     this.x -= this.speed; // Move towards the left
     // Increment frame index to animate the sprite
@@ -80,20 +80,20 @@ class Scooter {
 
 
 function setup() {
-  port = createSerial();
+  port = createSerial(); //Initialize serial port
   connectButton = createButton("Connect");
   connectButton.mousePressed(connect);
   createCanvas(800, 600);
   Tone.start();
   const backgroundMusic = new Tone.Player({
     url: 'assets/Music.wav',
-    loop: true // Loop the background music
+    loop: true //Loop the background music
   }).toDestination();
   backgroundMusic.autostart = true;
-
+  //sound for player moving forward
   playerSynth = new Tone.Synth({
     oscillator: {
-      type: 'triangle' // You can experiment with different oscillator types
+      type: 'triangle' // 
     },
     envelope: {
       attack: 0.1,
@@ -102,10 +102,10 @@ function setup() {
       release: 0.1
     }
   }).toDestination();
-
+  //sound for player getting hit by scooter
   collisionSynth = new Tone.Synth({
     oscillator: {
-      type: 'square' // You can experiment with different oscillator types
+      type: 'square' // 
     },
     envelope: {
       attack: 0.05,
@@ -114,7 +114,7 @@ function setup() {
       release: 0.5
     }
   }).toDestination();
-
+  //Location of pixels of streets on the background
   streets.push({
     yStart: 480,
     yEnd: 465
@@ -135,13 +135,13 @@ function setup() {
   playerY = height - 50;
 
   setInterval(spawnScooter, spawnInterval);
-
+  //set location for scooters to spawn
   for (let i = 0; i < streets.length; i++) {
     let y = (streets[i].yStart + streets[i].yEnd) / 2;
     let scooter = new Scooter(y, scooterSpriteSheet);
     scooters.push(scooter);
   }
-
+  //create button to restart gmae 
   restartButton = createButton('Restart');
   restartButton.position(750, 10); // Set the position of the button
   restartButton.mousePressed(restartGame); // Call restartGame() when button is clicked
@@ -151,9 +151,9 @@ function setup() {
 }
 
 function draw() {
-  background(backgroundImg);
+  background(backgroundImg);  //import background that I drew
   handleInput();
-
+  //if game isnt over, continue to play
   if (!gameOver && !win) {
     movePlayer();
     drawPlayer();
@@ -163,9 +163,9 @@ function draw() {
     checkGameStatus();
   } else {
     if (win) {
-      drawWinScreen();
+      drawWinScreen(); //win screen
     } else {
-      drawGameOverScreen();
+      drawGameOverScreen(); //lose screen
     }
   }
 
@@ -174,7 +174,7 @@ function draw() {
     scooters[i].display();
   }
 }
-
+//initalize keyProcessed variable
 let keyProcessed = {
   'left': false,
   'right': false,
@@ -185,16 +185,13 @@ let keyProcessed = {
 function handleInput() {
   // Reset currentDirection
   currentDirection = null;
-
+  //read data from serial port
   let latest = port.readUntil("\n");
   let values = latest.split(",");
   if (values.length > 2) {
     joystickX = values[0];
     joystickY = values[1];
   }
-
-  console.log("Joystick X: ", joystickX);
-  console.log("Joystick Y: ", joystickY);
 
   let joystickDirection = null;
   if (joystickX <= -400) {
@@ -210,7 +207,7 @@ function handleInput() {
     joystickDirection = 'down'
     keyProcessed['down'] = true;
   }
-
+  //Add delay so user cant just hold joystick down in any direction
   if (millis() - joystickTimer >= joystickDelay) {
     if (joystickDirection && joystickDirection !== prevJoystickDirection) {
       currentDirection = joystickDirection;
@@ -219,7 +216,7 @@ function handleInput() {
     joystickTimer = millis();
   }
 
-
+//add functionality of arrow keys
 if (!currentDirection) {
   if (keyIsPressed) {
     if (keyIsDown(LEFT_ARROW) && !keyProcessed['left']) {
@@ -247,7 +244,7 @@ if (!currentDirection) {
 }
 }
 
-
+//functionality for player to move in 4 directions
 function movePlayer() {
   if (currentDirection) {
     // Update lastMovedDirection when the player moves
@@ -269,11 +266,11 @@ function movePlayer() {
         break;
     }
 
-    // Constrain player within canvas boundaries
+    //Constrain player within canvas boundaries
     playerX = constrain(playerX, 0, width - playerSize);
     playerY = constrain(playerY, 0, height - playerSize);
 
-    // Check for collision after moving the player
+    //Check for collision after moving the player
     checkCollisionAndPlaySound();
   }
 }
@@ -281,19 +278,19 @@ function movePlayer() {
 function checkCollisionAndPlaySound() {
   for (let i = 0; i < scooters.length; i++) {
     if (collisionDetected(playerX, playerY, playerSize, playerSize, scooters[i].x, scooters[i].y, scooters[i].frameWidth, scooterSpriteSheet.height)) {
-      // Reduce lives count and reset player position
+      //Reduce lives count and reset player position
       lives--;
       collisionSynth.triggerAttackRelease('G4', '8n');
       playerX = width / 2;
       playerY = height - 50;
-      return; // Exit function to prevent triggering movement sound
+      return; //Exit function to prevent triggering movement sound
     }
   }
 
   triggerMovementSound();
 }
 
-
+//function to start sound when player moves
 function triggerMovementSound() {
   if (currentDirection === 'up') {
     score++;
@@ -303,9 +300,9 @@ function triggerMovementSound() {
 
 
 function drawPlayer() {
-  // Draw player sprite at the player's current position
+  //Draw player sprite at the player's current position
   let playerImage;
-
+  //switch cases for different directions, displays one of 4 sprites that I drew
   if (currentDirection) {
     switch (currentDirection) {
       case 'left':
@@ -339,7 +336,7 @@ function drawPlayer() {
   }
   image(playerImage, playerX, playerY, playerSize, playerSize);
 }
-
+//logic for scooters
 function displayScooters() {
   for (let i = scooters.length - 1; i >= 0; i--) {
     scooters[i].move();
@@ -348,7 +345,7 @@ function displayScooters() {
     if (collisionDetected(playerX, playerY, playerSize, playerSize, scooters[i].x, scooters[i].y, scooters[i].frameWidth, scooterSpriteSheet.height)) {
       // Reduce lives count and reset player position
       lives--;
-      collisionSynth.triggerAttackRelease('G4', '8n');
+      collisionSynth.triggerAttackRelease('G4', '8n'); //play collision sound
       playerX = width / 2;
       playerY = height - 50;
 
@@ -358,7 +355,7 @@ function displayScooters() {
       playerX = width / 2;
       playerY = height - 50;
     }
-    // Remove scooters that are out of bounds
+    //Remove scooters that are out of bounds
     if (scooters[i].x < -scooters[i].frameWidth) {
       scooters.splice(i, 1);
     }
@@ -370,15 +367,15 @@ function collisionDetected(x1, y1, w1, h1, x2, y2, w2, h2) {
 }
 
 function spawnScooter() {
-  // Check if enough time has passed since the last spawn
+  //Check if enough time has passed since the last spawn
   let currentTime = millis();
   if (currentTime - lastSpawnTime > spawnInterval) {
-    // Add a new scooter to the right side of the screen
+    //Add a new scooter to the right side of the screen
     let randomStreet = random(streets);
     let newScooter = new Scooter(random(randomStreet.yStart, randomStreet.yEnd), scooterSpriteSheet);
     scooters.push(newScooter);
 
-    // Update last spawn time
+    //Update last spawn time
     lastSpawnTime = currentTime;
   }
 }
@@ -396,13 +393,13 @@ function drawLives() {
   textAlign(RIGHT, TOP);
   text("Lives: " + lives, width - 10, 40);
 }
-
+//send the count of lives to arduino for LED functionality
 function sendLifeCount() {
   if (port && port.opened()) {
     port.write('L' + lives);
   }
 }
-
+//check status of game to see if player wins or loses
 function checkGameStatus() {
   if (score >= 30) {
     win = true;
@@ -434,39 +431,39 @@ function drawGameOverScreen() {
 }
 
 function restartGame() {
-  // Reset game state
+  //Reset game state
   score = 0;
   lives = 3;
   gameOver = false;
   win = false;
-  // Clear the canvas or reset any game elements if needed
+  //Clear the canvas or reset any game elements if needed
 
-  // Reset Tone.js
+  //Reset Tone.js to help with errors
   resetToneJS();
 }
 
 function resetToneJS() {
-  // Stop all active audio
+  //Stop all active audio
   Tone.Transport.stop();
   Tone.Transport.cancel();
 
-  // Release resources
+  //Release resources
   playerSynth.dispose();
   collisionSynth.dispose();
 
-  // Clear scheduled events
+  //Clear scheduled events
   Tone.Transport.cancel();
 
-  // Reset global state
+  //Reset global state
   Tone.Transport.bpm.value = 120; // Reset tempo to default
-  // Other global state reset if applicable
+  //Other global state reset if applicable
 
-  // Reinitialize necessary Tone.js components
+  //Reinitialize necessary Tone.js components
   playerSynth = new Tone.Synth({ /* Reinitialize synth parameters */ }).toDestination();
   collisionSynth = new Tone.Synth({ /* Reinitialize synth parameters */ }).toDestination();
 
 }
-
+//function for serial connection
 function connect() {
   if (!port.opened()) {
     port.open('Arduino', 9600);
