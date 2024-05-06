@@ -1,6 +1,9 @@
 #define VRX_PIN A0
 #define VRY_PIN A1
 #define SW_PIN 2
+#define LED1_PIN 5
+#define LED2_PIN 6
+#define LED3_PIN 7
 
 int joyX = 0, joyY = 0, sw = 0;
 
@@ -20,6 +23,9 @@ void setup() {
   // put your setup code here, to run once:
   Serial.begin(9600);
   pinMode(SW_PIN, INPUT_PULLUP);
+  pinMode(LED1_PIN, OUTPUT);
+  pinMode(LED2_PIN, OUTPUT);
+  pinMode(LED3_PIN, OUTPUT);
 
   for(int i = 0; i < numReadings; i++) {
     xReadings[i] = 0;
@@ -72,6 +78,26 @@ void loop() {
       lastTime = now;
     }
 
+    if (Serial.available() > 0) {
+    int lifeCount = Serial.parseInt();
+
+    if (lifeCount >= 1) {
+        digitalWrite(LED1_PIN, HIGH);
+    }else {
+      digitalWrite(LED1_PIN, LOW);
+    }
+    if (lifeCount >= 2) {
+      digitalWrite(LED2_PIN, HIGH);
+    } else {
+      digitalWrite(LED2_PIN, LOW);
+    }
+    if (lifeCount >= 3) {
+      digitalWrite(LED3_PIN, HIGH);
+    } else {
+      digitalWrite(LED3_PIN, LOW);
+    }
+
     delay(20);
   }
+}
 }

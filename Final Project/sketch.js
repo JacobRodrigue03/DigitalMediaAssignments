@@ -1,6 +1,9 @@
 let player;
 let port;
 let joystickX = 0, joystickY = 0, sw = 0;
+let prevJoystickDirection = null;
+let joystickTimer = 0;
+ let joystickDelay = 300;
 let connectButton;
 let playerSize = 40;
 let playerSpeed = 50;
@@ -140,7 +143,7 @@ function setup() {
   }
 
   restartButton = createButton('Restart');
-  restartButton.position(10, 10); // Set the position of the button
+  restartButton.position(750, 10); // Set the position of the button
   restartButton.mousePressed(restartGame); // Call restartGame() when button is clicked
 
   
@@ -190,19 +193,34 @@ function handleInput() {
     joystickY = values[1];
   }
 
-  console.log("Joystick X:", joystickX);
-  console.log("Joystick Y:", joystickY);
+  console.log("Joystick X: ", joystickX);
+  console.log("Joystick Y: ", joystickY);
 
-  if (joystickX <= -500) {
-    currentDirection = 'left';
-  } else if (joystickX >= 480) {
-    currentDirection = 'right';
-  } else if (joystickY <= -490) {
-    currentDirection = 'up';
-  } else if (joystickY >= 480) {
-    currentDirection = 'down'
+  let joystickDirection = null;
+  if (joystickX <= -400) {
+    joystickDirection = 'left';
+    keyProcessed['left'] = true;
+  } else if (joystickX >= 400) {
+    joystickDirection = 'right';
+    keyProcessed['right'] = true
+  } else if (joystickY <= -400) {
+    joystickDirection = 'up';
+    keyProcessed['up'] = true;
+  } else if (joystickY >= 400) {
+    joystickDirection = 'down'
+    keyProcessed['down'] = true;
   }
 
+  if (millis() - joystickTimer >= joystickDelay) {
+    if (joystickDirection && joystickDirection !== prevJoystickDirection) {
+      currentDirection = joystickDirection;
+      prevJoystickDirection = prevJoystickDirection;
+    }
+    joystickTimer = millis();
+  }
+
+
+if (!currentDirection) {
   if (keyIsPressed) {
     if (keyIsDown(LEFT_ARROW) && !keyProcessed['left']) {
       currentDirection = 'left';
@@ -226,6 +244,7 @@ function handleInput() {
       'down': false
     };
   }
+}
 }
 
 
@@ -378,6 +397,12 @@ function drawLives() {
   text("Lives: " + lives, width - 10, 40);
 }
 
+function sendLifeCount() {
+  if (port && port.opened()) {
+    port.write('L' + lives);
+  }
+}
+
 function checkGameStatus() {
   if (score >= 30) {
     win = true;
@@ -388,6 +413,8 @@ function checkGameStatus() {
     gameOver = true;
     sounds.player('Over').start();
   }
+
+  sendLifeCount();
 }
 
 function drawWinScreen() {
