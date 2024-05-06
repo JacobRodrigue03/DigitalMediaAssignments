@@ -1,6 +1,7 @@
 let player;
 let port;
 let joystickX = 0, joystickY = 0, sw = 0;
+let connectButton;
 let playerSize = 40;
 let playerSpeed = 50;
 let playerSprites = [];
@@ -77,6 +78,8 @@ class Scooter {
 
 function setup() {
   port = createSerial();
+  connectButton = createButton("Connect");
+  connectButton.mousePressed(connect);
   createCanvas(800, 600);
   Tone.start();
   const backgroundMusic = new Tone.Player({
@@ -140,14 +143,8 @@ function setup() {
   restartButton.position(10, 10); // Set the position of the button
   restartButton.mousePressed(restartGame); // Call restartGame() when button is clicked
 
-  connectButton = createButton("Connect");
-  connectButton.mousePressed(connect);
+  
 
-  let usedPorts = usedSerialPorts();
-  if (usedPorts.length > 0) {
-    port.open(usedPorts[0], 57600)
-  }
-  frameRate(60);
 }
 
 function draw() {
@@ -186,13 +183,23 @@ function handleInput() {
   // Reset currentDirection
   currentDirection = null;
 
-  if (joystickX < -0.5) {
+  let latest = port.readUntil("\n");
+  let values = latest.split(",");
+  if (values.length > 2) {
+    joystickX = values[0];
+    joystickY = values[1];
+  }
+
+  console.log("Joystick X:", joystickX);
+  console.log("Joystick Y:", joystickY);
+
+  if (joystickX <= -500) {
     currentDirection = 'left';
-  } else if (joystickX > 0.5) {
-    currentdirection = 'right';
-  } else if (joystickY < -0.5) {
+  } else if (joystickX >= 480) {
+    currentDirection = 'right';
+  } else if (joystickY <= -490) {
     currentDirection = 'up';
-  } else if (joystickY > 0.5) {
+  } else if (joystickY >= 480) {
     currentDirection = 'down'
   }
 
@@ -435,7 +442,7 @@ function resetToneJS() {
 
 function connect() {
   if (!port.opened()) {
-    port.open('Arduino', 57600)
+    port.open('Arduino', 9600);
   } else {
     port.close();
   }
